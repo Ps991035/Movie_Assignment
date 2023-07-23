@@ -7,12 +7,16 @@
 
 import UIKit
 
+/**
+ *  This class shows the list of the movies when user tap on any movie then it will navigate to MovieDetailViewController.
+ */
+
 class MovieListViewController: UIViewController {
 
     @IBOutlet weak var uvMovieList: UIView!
-    
     private var movieListView: MovieListView?
-    var movieModel: [MovieModel]?
+    
+    var items: [SectionItem]?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +27,7 @@ class MovieListViewController: UIViewController {
         self.movieListView = MovieListView(frame: self.uvMovieList.bounds)
         if let _movieListView = self.movieListView {
             _movieListView.delegate = self
-            _movieListView.setData(self.movieModel)
+            _movieListView.setData(self.items ?? [])
             self.uvMovieList.addSubview(_movieListView)
         }
     }
@@ -31,12 +35,7 @@ class MovieListViewController: UIViewController {
 }
 
 extension MovieListViewController: MovieListViewDelegate {
-    
-    func onMovieSelected(model: MovieModel?) {
-        if let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "MovieDetailViewController") as? MovieDetailViewController {
-            vc.movieModel = model
-            self.navigationController?.pushViewController(vc, animated: true)
-        }
+    func onMovieSelected(item: MovieListItem?) {
+        self.navigateToMovieDetailViewController(item: item)
     }
-    
 }

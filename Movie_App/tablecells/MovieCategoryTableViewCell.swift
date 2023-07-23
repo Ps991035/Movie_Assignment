@@ -7,7 +7,7 @@
 
 import UIKit
 
-class MovieCategoryTableViewCell: UITableViewCell {
+class MovieCategoryTableViewCell: UITableViewCell, MovieListCellProtocol {
     
     @IBOutlet weak var lblMovieCategory: UILabel!
     
@@ -15,15 +15,15 @@ class MovieCategoryTableViewCell: UITableViewCell {
         super.awakeFromNib()
         // Initialization code
     }
-
+    
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
-
         // Configure the view for the selected state
     }
     
-    func setData(_ title: String?) {
-        self.lblMovieCategory.text = title
+    func configureCell(item: MovieItem) {
+        if let _item = item as? MovieListOptionItem {
+            self.lblMovieCategory.text = _item.label
+        }
     }
-    
 }

@@ -16,11 +16,13 @@ class MovieViewController: UIViewController {
     @IBOutlet weak var tvMovieCategory: UITableView!
     @IBOutlet weak var loader: UIActivityIndicatorView!
     
-    
+    /**
+     *  This view have the list of movies
+     */
     private var movieListView: MovieListView?
     
     private lazy var viewModel: MovieViewModel? = {
-        let viewModel = MovieViewModel(repoFactory: MovieRepoFactory(), adapter: MovieDataAdapter())
+        let viewModel = MovieViewModel(repoFactory: MovieRepoFactory())
         viewModel.delegate = self
         return viewModel
     }()
@@ -29,15 +31,19 @@ class MovieViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         showLoader(show: true)
+        self.viewModel?.adapter = MovieDataAdapter(movieListDataAdapter: MovieListDataAdapter())
         self.viewModel?.fetchData(nil)
     }
     
     private func setupUI() {
         setupSearchBarUI()
-        setupTableView()
         initializeMovieListView()
     }
     
+    /**
+     * @param show  show and hide the loader
+     *  This function shows and hide the loader based upon the show parameter
+     */
     private func showLoader(show: Bool){
         DispatchQueue.main.async {
             
@@ -55,13 +61,19 @@ class MovieViewController: UIViewController {
     private func setupSearchBarUI() {
         searchBar.searchBarStyle = .minimal
         searchBar.delegate = self
-        searchBar.placeholder = "Search movies by title/actor/genre/director"
+        searchBar.placeholder = MovieConstants().searchBarTitle
     }
     
     private func setupTableView() {
+        
         self.tvMovieCategory.delegate = self
         self.tvMovieCategory.dataSource = self
-        self.tvMovieCategory.register(UINib(nibName: "MovieCategoryTableViewCell", bundle: nil), forCellReuseIdentifier: "MovieCategoryTableViewCell")
+        
+        for item in viewModel?.getMovieListOptionSectionItems() ?? [] {
+            for subItem in item.subItems {
+                self.tvMovieCategory.register(UINib(nibName: subItem.cellReusableIdentifier, bundle: nil), forCellReuseIdentifier: subItem.cellReusableIdentifier)
+            }
+        }
     }
     
     private func initializeMovieListView() {
@@ -86,27 +98,26 @@ extension MovieViewController: UISearchBarDelegate {
     }
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        self.viewModel?.adapter = MovieListDataAdapter()
         self.viewModel?.fetchData(searchBar.text)
         self.uvMovie.isHidden = false
-        self.movieListView?.setData(self.viewModel?.getSearchedMovieModel())
+        self.movieListView?.setData(self.viewModel?.getSearchedMovieSectionItem() ?? [])
         self.searchBar.endEditing(true)
         
     }
-    
 }
 
 extension MovieViewController: UITableViewDelegate,UITableViewDataSource {
     
     func numberOfSections(in tableView: UITableView) -> Int {
-        return viewModel?.getMovieCategorySection() ?? 0
+        return viewModel?.getMovieListOptionCount() ?? 0
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        let section = viewModel?.getMovieCategorySection(section: section)
-        
+        let section = viewModel?.getMovieListOption(section: section)
         if let _section = section {
-            return _section.isExpanded ? _section.rows?.count ?? 0 : 0
+            return _section.isExpanded ?? false ? _section.subItems.count : 0
         }
         return 0
     }
@@ -120,21 +131,21 @@ extension MovieViewController: UITableViewDelegate,UITableViewDataSource {
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.frame.width, height: 40))
         headerView.backgroundColor = .clear
         
-        let movieCategorySection = viewModel?.getMovieCategorySection(section: section)
+        let movieListOption = viewModel?.getMovieListOption(section: section)
         
         let titleLabel = UILabel(frame: CGRect(x: 16, y: 0, width: headerView.frame.width - 32, height: headerView.frame.height))
-        titleLabel.text = movieCategorySection?.title
+        titleLabel.text = movieListOption?.sectionTitle
         titleLabel.textColor = .red
         headerView.addSubview(titleLabel)
         
         let imageView = UIImageView(frame: CGRect(x: headerView.frame.width - 36, y: 14, width: 16, height: 16))
         imageView.backgroundColor = .clear
         
-        if movieCategorySection?.isExpanded ?? false {
-            imageView.image = UIImage(systemName: "chevron.compact.up")
+        if movieListOption?.isExpanded ?? false {
+            imageView.image = UIImage(systemName: MovieConstants().chevronUp)
             imageView.tintColor = .lightGray
         }else {
-            imageView.image = UIImage(systemName: "chevron.compact.down")
+            imageView.image = UIImage(systemName: MovieConstants().chevronDown)
             imageView.tintColor = .lightGray
         }
         headerView.addSubview(imageView)
@@ -149,53 +160,60 @@ extension MovieViewController: UITableViewDelegate,UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "MovieCategoryTableViewCell", for: indexPath) as? MovieCategoryTableViewCell else {
+        if (indexPath.section >= viewModel?.getMovieListOptionCount() ?? 0) {
+            return UITableViewCell()
+        }
+        let section = viewModel?.getMovieListOption(section: indexPath.section)
+        
+        guard let item = section?.subItems[indexPath.row] else {
             return UITableViewCell()
         }
         
-        let section = viewModel?.getMovieCategorySection(section: indexPath.section)
-        let row = section?.rows?[indexPath.row]
-        cell.setData(row)
-        return cell
+        if indexPath.row < section?.subItems.count ?? 0 {
+            
+            if let cell = tableView.dequeueReusableCell(withIdentifier: item.cellReusableIdentifier) as? MovieListCellProtocol {
+                cell.configureCell(item: item)
+                return cell as? UITableViewCell ?? UITableViewCell()
+            }
+        }
+        return UITableViewCell()
         
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 50
+        return UITableView.automaticDimension
+    }
+    
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        if let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "MovieListViewController") as? MovieListViewController {
-            
-            vc.movieModel  = self.viewModel?.getFilterdMovieBasedOnCategory(indexPath: indexPath)
-            self.navigationController?.pushViewController(vc, animated: true)
-            
+        if let _item = self.viewModel?.getMovieListItem(indexPath: indexPath) {
+            self.navigateToMovieDetailViewController(item: _item)
+        }else if let _items = self.viewModel?.getFilterdMovieBasedOnSelectedOption(indexPath: indexPath) {
+            self.navigateToMovieListViewController(items: _items)
         }
     }
     
     @objc func toggleSection(_ sender: UITapGestureRecognizer) {
         guard let section = sender.view?.tag else { return }
-        viewModel?.getMovieCategorySection(section: section)?.isExpanded.toggle()
+        viewModel?.getMovieListOption(section: section)?.isExpanded?.toggle()
         self.tvMovieCategory.reloadSections(IndexSet(integer: section), with: .automatic)
     }
 }
 
 extension MovieViewController: MovieListViewDelegate {
     
-    func onMovieSelected(model: MovieModel?) {
-        
-        if let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "MovieDetailViewController") as? MovieDetailViewController {
-            
-            vc.movieModel = model
-            self.navigationController?.pushViewController(vc, animated: true)
-            
-        }
+    func onMovieSelected(item: MovieListItem?) {
+        self.navigateToMovieDetailViewController(item: item)
     }
 }
 
 extension MovieViewController: MovieViewModelDelegate {
     func onDataFetched() {
+        self.setupTableView()
         self.showLoader(show: false)
     }
 }

@@ -13,6 +13,11 @@ class MovieRepoFactory {
         return MovieDataRepository()
     }
     
+    /**
+     * @param repositoryParam    This contains the parameters that are used in to retuurn the data from the repositories
+     *  This function return the repository which will return the movie list based on searchText
+     */
+    
     func getSearchListRepository(repositoryParam: MovieRepositoryParam?) -> MovieSearchRepository? {
             return MovieSearchDataRepository(repositoryParam: repositoryParam)
     }

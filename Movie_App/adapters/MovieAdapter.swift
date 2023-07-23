@@ -8,6 +8,6 @@
 import Foundation
 
 protocol MovieAdapter {
-    func getData(result: [Any]?) -> [MovieModel]?
+    func getData(result: [MovieListModel]?) -> [SectionItem]?
 }
 

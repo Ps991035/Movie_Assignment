@@ -7,7 +7,7 @@
 
 import Foundation
 
-typealias MovieSearchResponseCompletionHandler = (_ result: [MovieModel]?, _ error: String?) -> Void
+typealias MovieSearchResponseCompletionHandler = (_ result: [SectionItem]?, _ error: String?) -> Void
 
 protocol MovieSearchRepository {
     func fetch(_ completion: @escaping MovieSearchResponseCompletionHandler)

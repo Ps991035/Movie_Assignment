@@ -9,5 +9,5 @@ import Foundation
 
 struct MovieRepositoryParam {
     var searchText: String?
-    var movieModel: [MovieModel]?
+    var movieListModel: [MovieListModel]?
 }

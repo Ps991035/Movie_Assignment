@@ -9,8 +9,12 @@ import Foundation
 import UIKit
 
 protocol MovieListViewDelegate: AnyObject {
-    func onMovieSelected(model: MovieModel?)
+    func onMovieSelected(item: MovieListItem?)
 }
+
+/**
+ *  This class shows all the List of the movies
+ */
 
 class MovieListView: UIView {
     
@@ -18,9 +22,9 @@ class MovieListView: UIView {
     @IBOutlet weak var tvMovieList: UITableView!
     @IBOutlet weak var lblNoSearchResult: UILabel!
     
-    private var movieModel: [MovieModel]?
-    
     weak var delegate: MovieListViewDelegate?
+    
+    private var items: [SectionItem] = []
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
@@ -33,7 +37,7 @@ class MovieListView: UIView {
     }
     
     private func commoninit() {
-        Bundle.main.loadNibNamed("MovieListView", owner: self, options: nil)
+        Bundle.main.loadNibNamed(MovieConstants().movieListView, owner: self, options: nil)
         self.addSubview(contentView)
         contentView.frame = self.bounds
         contentView.autoresizingMask = [.flexibleHeight,.flexibleWidth]
@@ -43,47 +47,63 @@ class MovieListView: UIView {
     
     private func reloadTableView() {
         DispatchQueue.main.async {
+            self.setupTableView()
             self.tvMovieList.reloadData()
         }
     }
     
-    func setData(_ model: [MovieModel]?) {
-        self.movieModel = model
-        
-        if model?.count == 0 {
+    func setData(_ items: [SectionItem]) {
+        self.items = items
+        if items.first?.subItems.count == 0 {
             self.lblNoSearchResult.isHidden = false
-            self.lblNoSearchResult.text = "No Search Result Found! \n Please try again"
+            self.lblNoSearchResult.text = MovieConstants().noSearchResultFoundText
         }else {
             self.lblNoSearchResult.isHidden = true
         }
         self.reloadTableView()
     }
     
-    private func setupTableView() {
+    func setupTableView() {
+        
         self.tvMovieList.delegate = self
         self.tvMovieList.dataSource = self
-        self.tvMovieList.register(UINib(nibName: "MovieListTableViewCell", bundle: nil), forCellReuseIdentifier: "MovieListTableViewCell")
+        
+        for item in items {
+            for subItem in item.subItems {
+                self.tvMovieList.register(UINib(nibName: subItem.cellReusableIdentifier, bundle: nil), forCellReuseIdentifier: subItem.cellReusableIdentifier)
+            }
+        }
     }
-    
 }
-
 
 extension MovieListView: UITableViewDelegate, UITableViewDataSource {
     
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return items.count
+    }
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        return movieModel?.count ?? 0
+        return items[section].subItems.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "MovieListTableViewCell", for: indexPath) as? MovieListTableViewCell else {
+        if (indexPath.section >= items.count ) {
             return UITableViewCell()
         }
         
-        cell.setData(movie: movieModel?[indexPath.row])
-        return cell
+        let section = items[indexPath.section]
+        let item = section.subItems[indexPath.row]
         
+        if indexPath.row < section.subItems.count {
+            
+            if let cell = tableView.dequeueReusableCell(withIdentifier: item.cellReusableIdentifier) as? MovieListCellProtocol {
+                cell.configureCell(item: item)
+                return cell as? UITableViewCell ?? UITableViewCell()
+            }
+        }
+        return UITableViewCell()
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -91,8 +111,8 @@ extension MovieListView: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        self.delegate?.onMovieSelected(model: self.movieModel?[indexPath.row])
+        let section = items[indexPath.section]
+        let item = section.subItems[indexPath.row]
+        self.delegate?.onMovieSelected(item: item as? MovieListItem)
     }
-    
-    
 }

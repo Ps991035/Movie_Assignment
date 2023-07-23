@@ -15,21 +15,26 @@ class MovieSearchDataRepository: MovieSearchRepository {
         self.repositoryParam = repositoryParam
     }
     
+    /**
+     *  This function send the information of the movie based on the searchText, if search Text is present in the List of the movies then it return those movies
+     */
+    
     func fetch(_ completion: @escaping MovieSearchResponseCompletionHandler) {
         
-        var movieModel = [MovieModel]()
-        
-        guard let models = repositoryParam?.movieModel, let searchText = repositoryParam?.searchText else {
+        guard let models = repositoryParam?.movieListModel, let searchText = repositoryParam?.searchText else {
             return
         }
-        
+        var movieSections = [SectionItem]()
+        var movieSubItems = [MovieItem]()
         for model in models {
-            
-            if (model.year?.contains(searchText) ?? false) || (model.genre?.contains(searchText) ?? false) || (model.directors?.contains(searchText) ?? false) || (model.actors?.contains(searchText) ?? false){
-                movieModel.append(model)
+            if model.isMovieModelContains(searchText) {
+                let movieSubItem = MovieListItem(cellReusableIdentifier: MovieConstants().movieListTableViewCell,moviewListModel: model)
+                movieSubItems.append(movieSubItem)
             }
         }
-        completion(movieModel,nil)
+        let movieSectionItem = MovieSectionItem(subItems: movieSubItems, sectionTitle: MovieCategory.ALL_MOVIE.rawValue)
+        movieSections.append(movieSectionItem)
+        completion(movieSections,nil)
         
     }
 }

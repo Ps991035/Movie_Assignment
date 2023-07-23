@@ -7,7 +7,7 @@
 
 import UIKit
 
-class MovieDetailTableViewCell: UITableViewCell {
+class MovieDetailTableViewCell: UITableViewCell, MovieListCellProtocol {
     
     @IBOutlet weak var lblMovieDetailTitle: UILabel!
     @IBOutlet weak var lblMovieDetailValue: UILabel!
@@ -16,16 +16,17 @@ class MovieDetailTableViewCell: UITableViewCell {
         super.awakeFromNib()
         // Initialization code
     }
-
+    
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
-
         // Configure the view for the selected state
     }
     
-    func setData(title: String?, value: String?) {
-        self.lblMovieDetailTitle.text = (title ?? "") + " : "
-        self.lblMovieDetailValue.text = value
+    func configureCell(item: MovieItem) {
+        
+        if let _item = item as? MovieDetailItem, let title = _item.movieDetailModel?.title, let value = _item.movieDetailModel?.value {
+            self.lblMovieDetailTitle.text = title + " : "
+            self.lblMovieDetailValue.text = value
+        }
     }
-    
 }

@@ -10,7 +10,6 @@ import UIKit
 class MovieRatingCollectionViewCell: UICollectionViewCell {
 
     @IBOutlet weak var lblRatingSource: UILabel!
-    
     @IBOutlet weak var uvContent: UIView!
     
     override func awakeFromNib() {

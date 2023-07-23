@@ -8,9 +8,13 @@
 import UIKit
 import SDWebImage
 
+/**
+ *   This class shows all the details of the selected movie, and also handle the rating of the movie user can tap of any option of the given rating type and based upon that rating will be shown.
+ */
+
 class MovieDetailViewController: UIViewController {
     
-    var movieModel: MovieModel?
+    var movieModel: MovieListModel?
     var movieDetailTitles = [[AnyHashable:Any]]()
     
     @IBOutlet weak var imgMovie: UIImageView!
@@ -20,10 +24,17 @@ class MovieDetailViewController: UIViewController {
     
     private var selectedIndexPath: IndexPath?
     
+    private var movieItems: [MovieItem] = []
+    
+    private lazy var viewModel: MovieDetailViewModel? = {
+        let viewModel = MovieDetailViewModel()
+        return viewModel
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
         setData()
+        setupUI()
     }
     
     private func setupUI() {
@@ -36,13 +47,17 @@ class MovieDetailViewController: UIViewController {
     private func setupCollectionView() {
         self.collectionViewRatings.delegate = self
         self.collectionViewRatings.dataSource = self
-        self.collectionViewRatings.register(UINib(nibName: "MovieRatingCollectionViewCell", bundle: nil), forCellWithReuseIdentifier: "MovieRatingCollectionViewCell")
+        self.collectionViewRatings.register(UINib(nibName: MovieConstants().movieRatingCollectionViewCell, bundle: nil), forCellWithReuseIdentifier: MovieConstants().movieRatingCollectionViewCell)
     }
     
     private func setupTableView() {
+        
         self.tvMovieDetails.delegate = self
         self.tvMovieDetails.dataSource = self
-        self.tvMovieDetails.register(UINib(nibName: "MovieDetailTableViewCell", bundle: nil), forCellReuseIdentifier: "MovieDetailTableViewCell")
+        
+        for item in movieItems {
+            self.tvMovieDetails.register(UINib(nibName: item.cellReusableIdentifier, bundle: nil), forCellReuseIdentifier: item.cellReusableIdentifier)
+        }
     }
     
     private func reloadTableView() {
@@ -69,35 +84,25 @@ class MovieDetailViewController: UIViewController {
         if let imageURL = _movie.poster {
             self.imgMovie.sd_setImage(with: URL(string: imageURL),completed: nil)
         }
-        self.movieDetailTitles = [
-            ["Title": _movie.title ?? ""],
-            ["Plot": _movie.plot ?? ""],
-            ["Cast & Crew": (_movie.directors ?? "") + (_movie.actors ?? "")],
-            ["Released Date": _movie.releaseDate ?? ""],
-            ["Genre": _movie.genre ?? ""]
-        ]
+        self.movieItems = self.viewModel?.getMovieDetailItem(_movie) ?? []
     }
-
+    
 }
 
 extension MovieDetailViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movieDetailTitles.count
+        return movieItems.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "MovieDetailTableViewCell", for: indexPath) as? MovieDetailTableViewCell else {
-            return UITableViewCell()
+        let item = movieItems[indexPath.row]
+        
+        if let cell = tableView.dequeueReusableCell(withIdentifier: item.cellReusableIdentifier) as? MovieListCellProtocol {
+            cell.configureCell(item: item)
+            return cell as? UITableViewCell ?? UITableViewCell()
         }
-        
-        let model = movieDetailTitles[indexPath.row]
-        
-        if let _key = model.keys.first as? String,let value = model.first?.value as? String {
-            cell.setData(title: _key, value: value)
-        }
-        
-        return cell
+        return UITableViewCell()
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -118,7 +123,7 @@ extension MovieDetailViewController: UICollectionViewDelegate, UICollectionViewD
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieRatingCollectionViewCell", for: indexPath) as? MovieRatingCollectionViewCell else {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MovieConstants().movieRatingCollectionViewCell, for: indexPath) as? MovieRatingCollectionViewCell else {
             return UICollectionViewCell()
         }
         cell.setRatingSource(title: self.movieModel?.ratings?[indexPath.row].source, isSelected: indexPath == selectedIndexPath)
@@ -134,6 +139,5 @@ extension MovieDetailViewController: UICollectionViewDelegate, UICollectionViewD
         self.setRatingValue()
         self.reloadCollectionView()
     }
-    
     
 }
